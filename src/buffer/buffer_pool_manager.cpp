@@ -22,6 +22,19 @@ BufferPoolManager::~BufferPoolManager() {
   delete replacer_;
 }
 
+frame_id_t BufferPoolManager::TryToFindFreePage() {
+  frame_id_t frame_id;
+  if (!free_list_.empty()) {
+    frame_id = free_list_.front();
+    free_list_.pop_front();
+    return frame_id;
+  }
+  if (replacer_->Victim(&frame_id)) {
+    return frame_id;
+  }
+  return INVALID_PAGE_ID;
+}
+
 /**
  * TODO: Student Implement
  */
@@ -33,7 +46,45 @@ Page *BufferPoolManager::FetchPage(page_id_t page_id) {
   // 2.     If R is dirty, write it back to the disk.
   // 3.     Delete R from the page table and insert P.
   // 4.     Update P's metadata, read in the page content from disk, and then return a pointer to P.
-  return nullptr;
+  scoped_lock<recursive_mutex> lock(latch_);
+ 
+  // 1. 页已在 Buffer Pool 中
+  auto it = page_table_.find(page_id);
+  if (it != page_table_.end()) {
+    frame_id_t fid = it->second;
+    replacer_->Pin(fid);           // 从 replacer 移除，使之不被替换
+    pages_[fid].pin_count_++;
+    return &pages_[fid];
+  }
+ 
+  // 2. 找一个空闲 frame
+  frame_id_t fid = TryToFindFreePage();
+  if (fid == INVALID_PAGE_ID) {
+    return nullptr;  // Buffer Pool 全部被 pin，无法腾出空间
+  }
+ 
+  Page &frame = pages_[fid];
+ 
+  // 3. 若该 frame 原来持有脏页，先写回磁盘
+  if (frame.is_dirty_) {
+    disk_manager_->WritePage(frame.page_id_, frame.data_);
+    frame.is_dirty_ = false;
+  }
+ 
+  // 4. 从 page_table_ 中删除旧映射
+  if (frame.page_id_ != INVALID_PAGE_ID) {
+    page_table_.erase(frame.page_id_);
+  }
+ 
+  // 5. 建立新映射，读入页内容，更新元数据
+  page_table_[page_id] = fid;
+  frame.page_id_  = page_id;
+  frame.pin_count_ = 1;
+  frame.is_dirty_  = false;
+  disk_manager_->ReadPage(page_id, frame.data_);
+  replacer_->Pin(fid);
+ 
+  return &frame;
 }
 
 /**
@@ -45,7 +96,39 @@ Page *BufferPoolManager::NewPage(page_id_t &page_id) {
   // 2.   Pick a victim page P from either the free list or the replacer. Always pick from the free list first.
   // 3.   Update P's metadata, zero out memory and add P to the page table.
   // 4.   Set the page ID output parameter. Return a pointer to P.
-  return nullptr;
+  scoped_lock<recursive_mutex> lock(latch_);
+ 
+  // 找一个空闲 frame
+  frame_id_t fid = TryToFindFreePage();
+  if (fid == INVALID_PAGE_ID) {
+    return nullptr;  // 所有页都被 pin，无法分配
+  }
+ 
+  Page &frame = pages_[fid];
+ 
+  // 若该 frame 原来持有脏页，先写回磁盘
+  if (frame.is_dirty_) {
+    disk_manager_->WritePage(frame.page_id_, frame.data_);
+    frame.is_dirty_ = false;
+  }
+ 
+  // 删除旧映射
+  if (frame.page_id_ != INVALID_PAGE_ID) {
+    page_table_.erase(frame.page_id_);
+  }
+ 
+  // 从磁盘分配一个新的逻辑页号
+  page_id = AllocatePage();
+ 
+  // 建立新映射，清空 frame 内存，更新元数据
+  page_table_[page_id] = fid;
+  frame.page_id_  = page_id;
+  frame.pin_count_ = 1;
+  frame.is_dirty_  = false;
+  memset(frame.data_, 0, PAGE_SIZE);
+  replacer_->Pin(fid);
+ 
+  return &frame;
 }
 
 /**
@@ -57,21 +140,90 @@ bool BufferPoolManager::DeletePage(page_id_t page_id) {
   // 1.   If P does not exist, return true.
   // 2.   If P exists, but has a non-zero pin-count, return false. Someone is using the page.
   // 3.   Otherwise, P can be deleted. Remove P from the page table, reset its metadata and return it to the free list.
-  return false;
+  scoped_lock<recursive_mutex> lock(latch_);
+ 
+  auto it = page_table_.find(page_id);
+  if (it == page_table_.end()) {
+    // 页不在 Buffer Pool，直接释放磁盘空间
+    DeallocatePage(page_id);
+    return true;
+  }
+ 
+  frame_id_t fid = it->second;
+  Page &frame = pages_[fid];
+ 
+  // 有线程正在使用该页，无法删除
+  if (frame.pin_count_ > 0) {
+    return false;
+  }
+ 
+  // 从 replacer 中移除（防止后续被 Victim 选中）
+  replacer_->Pin(fid);
+ 
+  // 重置 frame 状态
+  page_table_.erase(page_id);
+  frame.page_id_  = INVALID_PAGE_ID;
+  frame.pin_count_ = 0;
+  frame.is_dirty_  = false;
+  memset(frame.data_, 0, PAGE_SIZE);
+ 
+  // 归还到 free_list_
+  free_list_.push_back(fid);
+ 
+  // 释放磁盘空间
+  DeallocatePage(page_id);
+ 
+  return true;
 }
 
 /**
  * TODO: Student Implement
  */
 bool BufferPoolManager::UnpinPage(page_id_t page_id, bool is_dirty) {
-  return false;
+  scoped_lock<recursive_mutex> lock(latch_);
+ 
+  auto it = page_table_.find(page_id);
+  if (it == page_table_.end()) {
+    return false;  // 页不在 Buffer Pool
+  }
+ 
+  frame_id_t fid = it->second;
+  Page &frame = pages_[fid];
+ 
+  if (frame.pin_count_ == 0) {
+    return false;  // 已经是 0，不能再减
+  }
+ 
+  // 脏标记：只要调用者说脏就设置，不会清除已有的脏标记
+  frame.is_dirty_ |= is_dirty;
+  frame.pin_count_--;
+ 
+  // pin_count 归零：允许 replacer 将来替换该 frame
+  if (frame.pin_count_ == 0) {
+    replacer_->Unpin(fid);
+  }
+ 
+  return true;
 }
 
 /**
  * TODO: Student Implement
  */
 bool BufferPoolManager::FlushPage(page_id_t page_id) {
-  return false;
+  scoped_lock<recursive_mutex> lock(latch_);
+ 
+  auto it = page_table_.find(page_id);
+  if (it == page_table_.end()) {
+    return false;  // 页不在 Buffer Pool
+  }
+ 
+  frame_id_t fid = it->second;
+  Page &frame = pages_[fid];
+ 
+  disk_manager_->WritePage(page_id, frame.data_);
+  frame.is_dirty_ = false;
+ 
+  return true;
 }
 
 page_id_t BufferPoolManager::AllocatePage() {
