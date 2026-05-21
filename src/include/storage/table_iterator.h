@@ -32,6 +32,9 @@ public:
 
 private:
   // add your own private member variables here
+  TableHeap *table_heap_;  // 所属堆表
+  Row *row_;               // 当前指向的行
+  Txn *txn_;               // 事务上下文  
 };
 
 #endif  // MINISQL_TABLE_ITERATOR_H
