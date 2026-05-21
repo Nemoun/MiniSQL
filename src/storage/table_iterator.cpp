@@ -35,8 +35,7 @@ const Row &TableIterator::operator*() {
 }
 
 Row *TableIterator::operator->() {
-  // 与 operator* 保持一致，触发一次数据读取后返回指针
-  return &(operator*());
+  return row_;
 }
 
 TableIterator &TableIterator::operator=(const TableIterator &itr) noexcept {
@@ -100,7 +99,8 @@ TableIterator &TableIterator::operator++() {
 
 // iter++
 TableIterator TableIterator::operator++(int) {
-  TableIterator old(*this);
+  TableIterator old(nullptr, RowId(), nullptr);
+  old = *this;
   ++(*this);
-  return old;
+  return TableIterator(old);
 }
