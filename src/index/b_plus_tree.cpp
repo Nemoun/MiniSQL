@@ -28,7 +28,7 @@ BPlusTree::BPlusTree(index_id_t index_id, BufferPoolManager *buffer_pool_manager
  
   // 从 INDEX_ROOTS_PAGE 恢复 root_page_id
   auto *roots_page = reinterpret_cast<IndexRootsPage *>(
-      buffer_pool_manager_->FetchPage(INDEX_ROOTS_PAGE_ID)->GetData());
+      buffer_pool_manager_->FetchPage(INDEX_ROOTS_PAGE_ID));
   if (!roots_page->GetRootId(index_id_, &root_page_id_)) {
     root_page_id_ = INVALID_PAGE_ID;
   }
@@ -145,7 +145,7 @@ bool BPlusTree::InsertIntoLeaf(GenericKey *key, const RowId &value, Txn *transac
   }
  
   int new_size = leaf->Insert(key, value, processor_);
-  if (new_size > leaf->GetMaxSize()) {
+  if (new_size >= leaf->GetMaxSize()) {
     // 叶结点溢出，分裂
     LeafPage *sibling = Split(leaf, transaction);
     // 将分裂出的右兄弟的第一个 key 上推到父结点
@@ -538,7 +538,7 @@ Page *BPlusTree::FindLeafPage(const GenericKey *key, page_id_t page_id, bool lef
  */
 void BPlusTree::UpdateRootPageId(int insert_record) {
   auto *roots_page = reinterpret_cast<IndexRootsPage *>(
-      buffer_pool_manager_->FetchPage(INDEX_ROOTS_PAGE_ID)->GetData());
+      buffer_pool_manager_->FetchPage(INDEX_ROOTS_PAGE_ID));
  
   if (insert_record == 1) {
     roots_page->Insert(index_id_, root_page_id_);
