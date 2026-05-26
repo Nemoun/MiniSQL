@@ -77,7 +77,7 @@ uint32_t Column::SerializeTo(char *buf) const {
  * TODO: Student Implement
  */
 uint32_t Column::GetSerializedSize() const {
-  return sizeof(uint32_t) * 4 + name_.length() + 2;
+  return sizeof(uint32_t) * 5 + name_.length() + 2;
 }
 
 /**
