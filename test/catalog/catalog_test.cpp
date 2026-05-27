@@ -66,6 +66,7 @@ TEST(CatalogTest, CatalogTableTest) {
   ASSERT_EQ(DB_TABLE_NOT_EXIST, catalog_02->GetTable("table-2", table_info_03));
   ASSERT_EQ(DB_SUCCESS, catalog_02->GetTable("table-1", table_info_03));
   delete db_02;
+  remove("./databases/catalog_test.db");
 }
 
 TEST(CatalogTest, CatalogIndexTest) {
@@ -126,4 +127,5 @@ TEST(CatalogTest, CatalogIndexTest) {
     ASSERT_EQ(rid.Get(), ret_02[i].Get());
   }
   delete db_02;
+  remove("./databases/catalog_test.db");
 }

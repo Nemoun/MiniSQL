@@ -6,6 +6,8 @@
 
 #include <chrono>
 
+#include "common/dberr.h"
+#include "common/instance.h"
 #include "common/result_writer.h"
 #include "executor/executors/delete_executor.h"
 #include "executor/executors/index_scan_executor.h"
@@ -14,6 +16,7 @@
 #include "executor/executors/update_executor.h"
 #include "executor/executors/values_executor.h"
 #include "glog/logging.h"
+#include "parser/syntax_tree.h"
 #include "planner/planner.h"
 #include "utils/utils.h"
 
@@ -23,7 +26,7 @@ extern "C" {
   #include "parser/parser.h"
 }
 
-ExecuteEngine::ExecuteEngine() {
+ExecuteEngine::ExecuteEngine(bool init) {
   char path[] = "./databases";
   DIR *dir;
   if ((dir = opendir(path)) == nullptr) {
@@ -32,16 +35,17 @@ ExecuteEngine::ExecuteEngine() {
   }
   /** When you have completed all the code for
    *  the test, run it using main.cpp and uncomment
-   *  this part of the code.
-  struct dirent *stdir;
-  while((stdir = readdir(dir)) != nullptr) {
-    if( strcmp( stdir->d_name , "." ) == 0 ||
-        strcmp( stdir->d_name , "..") == 0 ||
-        stdir->d_name[0] == '.')
-      continue;
-    dbs_[stdir->d_name] = new DBStorageEngine(stdir->d_name, false);
+   *  this part of the code.**/
+  if (!init) {
+    struct dirent *stdir;
+    while((stdir = readdir(dir)) != nullptr) {
+      if( strcmp( stdir->d_name , "." ) == 0 ||
+          strcmp( stdir->d_name , "..") == 0 ||
+          stdir->d_name[0] == '.')
+        continue;
+      dbs_[stdir->d_name] = new DBStorageEngine(stdir->d_name, false);
+    }
   }
-   **/
   closedir(dir);
 }
 
@@ -347,6 +351,9 @@ dberr_t ExecuteEngine::ExecuteShowTables(pSyntaxNode ast, ExecuteContext *contex
  * TODO: Student Implement
  */
 dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *context) {
+#ifdef ENABLE_EXECUTE_DEBUG
+  LOG(INFO) << "ExecuteCreateTable" << std::endl;
+#endif  
   if (current_db_.empty()) { cout << "No database selected" << endl; return DB_FAILED; }
  
   // 获取表名
@@ -457,6 +464,9 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
  * TODO: Student Implement
  */
 dberr_t ExecuteEngine::ExecuteDropTable(pSyntaxNode ast, ExecuteContext *context) {
+#ifdef ENABLE_EXECUTE_DEBUG
+  LOG(INFO) << "ExecuteDropTable" << std::endl;
+#endif
   if (current_db_.empty()) { cout << "No database selected" << endl; return DB_FAILED; }
   string table_name = ast->child_->val_;
   auto ret = context->GetCatalog()->DropTable(table_name);
@@ -468,6 +478,9 @@ dberr_t ExecuteEngine::ExecuteDropTable(pSyntaxNode ast, ExecuteContext *context
  * TODO: Student Implement
  */
 dberr_t ExecuteEngine::ExecuteShowIndexes(pSyntaxNode ast, ExecuteContext *context) {
+#ifdef ENABLE_EXECUTE_DEBUG
+  LOG(INFO) << "ExecuteShowIndexes" << std::endl;
+#endif
   if (current_db_.empty()) { cout << "No database selected" << endl; return DB_FAILED; }
  
   vector<TableInfo *> tables;
@@ -491,6 +504,9 @@ dberr_t ExecuteEngine::ExecuteShowIndexes(pSyntaxNode ast, ExecuteContext *conte
  * TODO: Student Implement
  */
 dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *context) {
+#ifdef ENABLE_EXECUTE_DEBUG
+  LOG(INFO) << "ExecuteCreateIndex" << std::endl;
+#endif
   if (current_db_.empty()) { cout << "No database selected" << endl; return DB_FAILED; }
  
   string index_name = ast->child_->val_;
@@ -523,6 +539,9 @@ dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *conte
  * TODO: Student Implement
  */
 dberr_t ExecuteEngine::ExecuteDropIndex(pSyntaxNode ast, ExecuteContext *context) {
+#ifdef ENABLE_EXECUTE_DEBUG
+  LOG(INFO) << "ExecuteDropIndex" << std::endl;
+#endif
   if (current_db_.empty()) { cout << "No database selected" << endl; return DB_FAILED; }
  
   string index_name = ast->child_->val_;
@@ -566,6 +585,9 @@ dberr_t ExecuteEngine::ExecuteTrxRollback(pSyntaxNode ast, ExecuteContext *conte
  * TODO: Student Implement
  */
 dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context) {
+#ifdef ENABLE_EXECUTE_DEBUG
+  LOG(INFO) << "ExecuteExecfile" << std::endl;
+#endif
   string filename = ast->child_->val_;
   std::ifstream file(filename);
   if (!file.is_open()) {

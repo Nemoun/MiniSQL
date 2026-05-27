@@ -69,4 +69,5 @@ TEST(BPlusTreeTests, SampleTest) {
     ASSERT_TRUE(tree.GetValue(delete_seq[i], ans));
     ASSERT_EQ(kv_map[delete_seq[i]], ans[ans.size() - 1]);
   }
+  remove("./databases/bp_tree_insert_test.db");
 }

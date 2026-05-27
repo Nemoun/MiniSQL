@@ -79,4 +79,5 @@ TEST(BPlusTreeTests, BPlusTreeIndexSimpleTest) {
   ASSERT_EQ(10, i);
   index->Destroy();
   delete index;
+  remove("./databases/bp_tree_index_test.db");
 }

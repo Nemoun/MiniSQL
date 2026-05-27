@@ -53,4 +53,5 @@ TEST(BPlusTreeTests, IndexIteratorTest) {
     EXPECT_EQ(RowId((2 * i - 1) * 100), (*iter).second);
   }
   ASSERT_EQ(25, i);
+  remove("./databases/bp_tree_insert_test.db");
 }

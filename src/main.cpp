@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
   const int buf_size = 1024;
   char cmd[buf_size];
   // executor engine
-  ExecuteEngine engine;
+  ExecuteEngine engine(false);
   // for print syntax tree
   TreeFileManagers syntax_tree_file_mgr("syntax_tree_");
   uint32_t syntax_tree_id = 0;

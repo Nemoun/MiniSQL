@@ -22,7 +22,7 @@ extern "C" {
  */
 class ExecuteEngine {
  public:
-  ExecuteEngine();
+  ExecuteEngine(bool init);
 
   ~ExecuteEngine() {
     for (auto it : dbs_) {
