@@ -188,5 +188,5 @@ TableIterator TableHeap::Begin(Txn *txn) {
  * TODO: Student Implement
  */
 TableIterator TableHeap::End() {
-  return TableIterator(this, RowId(INVALID_PAGE_ID, 0), nullptr);
+  return TableIterator(nullptr, RowId(INVALID_PAGE_ID, 0), nullptr);
 }
