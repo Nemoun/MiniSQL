@@ -9,9 +9,10 @@
 TableIterator::TableIterator(TableHeap *table_heap, RowId rid, Txn *txn)
     : table_heap_(table_heap), row_(new Row(rid)), txn_(txn) {}
 
-TableIterator::TableIterator(const TableIterator &other) {
-
-}
+TableIterator::TableIterator(const TableIterator &other)
+    : table_heap_(other.table_heap_),
+      row_(other.row_ ? new Row(*other.row_) : nullptr),
+      txn_(other.txn_) {}
 
 TableIterator::~TableIterator() {
   delete row_;

@@ -95,6 +95,8 @@ page_id_t DiskManager::AllocatePage() {
   // 更新元数据页
   meta_page->extent_used_page_[extent_id]++;
   meta_page->num_allocated_pages_++;
+  // 将 meta 页写回磁盘，确保持久化（防止其他 DiskManager 实例读取到过期数据）
+  WritePhysicalPage(META_PAGE_ID, meta_data_);
   return BITMAP_SIZE * extent_id + page_offset;
 }
 
@@ -123,6 +125,8 @@ void DiskManager::DeAllocatePage(page_id_t logical_page_id) {
     // 更新 MetaPage 统计
     meta->num_allocated_pages_--;
     meta->extent_used_page_[extent_id]--;
+    // 将 meta 页写回磁盘，确保持久化
+    WritePhysicalPage(META_PAGE_ID, meta_data_);
   }
 }
 

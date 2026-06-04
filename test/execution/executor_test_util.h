@@ -36,6 +36,10 @@ class ExecutorTest : public ::testing::Test {
   void SetUp() override {
     ::testing::Test::SetUp();
 
+    // 先创建 ExecuteEngine（此时 ./databases/ 下尚无数据库文件，
+    // 避免 ExecuteEngine(false) 扫描到测试数据库并创建第二个 DBStorageEngine）
+    execution_engine_ = std::make_unique<ExecuteEngine>(false);
+
     // Initialize the database subsystems
     db_test_ = new DBStorageEngine("executor_test.db", true);
     auto &catalog_01 = db_test_->catalog_mgr_;
@@ -59,9 +63,6 @@ class ExecutorTest : public ::testing::Test {
     }
     // Create an executor context for our executors
     exec_ctx_ = std::make_unique<ExecuteContext>(txn_, db_test_->catalog_mgr_, db_test_->bpm_);
-
-    // Construct the executor engine for the test
-    execution_engine_ = std::make_unique<ExecuteEngine>(false);
   }
 
   /** Called after every executor test. */

@@ -347,6 +347,9 @@ dberr_t CatalogManager::FlushCatalogMetaPage() const {
   }
   catalog_meta_->SerializeTo(meta_page->GetData());
   buffer_pool_manager_->UnpinPage(CATALOG_META_PAGE_ID, true);
+  // 立即将 catalog meta 写回磁盘，确保在磁盘上持久化
+  // （防止其他 BufferPoolManager 实例打开同一数据库时读到过期数据）
+  buffer_pool_manager_->FlushPage(CATALOG_META_PAGE_ID);
   return DB_SUCCESS;
 }
 
