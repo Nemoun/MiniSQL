@@ -1,0 +1,53 @@
+create database db0;
+create database db1;
+create database db2;
+show databases;
+use db0;
+create table account(
+  id int, 
+  name char(16),
+  balance float,
+  primary key(id)
+);
+execfile "../sqldata/account00.txt";
+execfile "../sqldata/account01.txt";
+execfile "../sqldata/account02.txt";
+execfile "../sqldata/account03.txt";
+execfile "../sqldata/account04.txt";
+execfile "../sqldata/account05.txt";
+execfile "../sqldata/account06.txt";
+execfile "../sqldata/account07.txt";
+execfile "../sqldata/account08.txt";
+execfile "../sqldata/account09.txt";
+select * from account;
+select * from account where id = 12556789;
+select * from account where balance = 171.110001;
+select * from account where name = "name56789";
+select * from account where id <> 12556789;
+select * from account where balance <> 171.110001;
+select * from account where name <> "name56789";
+select id, name from account where balance >= 171 and balance < 172;
+select name, balance from account where balance > 171 and id <= 12556789;
+select * from account where id < 12500200 and name < "name00100";
+insert into account values(12556789, "name56789", 1.0);
+create index idx01 on account(name);
+show indexes;
+select * from account where name = "name56789";
+select * from account where name = "name45678";
+select * from account where id < 12500200 and name < "name00100";
+delete from account where name = "name45678";
+insert into account values(12545678, "name45678", 114.514);
+drop index idx01 on account;
+show indexes;
+select * from account where name = "name45678";
+update account set id = 12600000, balance = 114.514 where name = "name56789";
+select * from account where id = 12556789;
+select * from account where name = "name56789";
+select * from account where balance = 114.514;
+delete from account where balance = 114.514;
+select * from account where balance = 114.514;
+delete from account;
+select * from account;
+drop table account;
+show tables;
+quit;
