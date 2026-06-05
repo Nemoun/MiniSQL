@@ -41,6 +41,9 @@ BPlusTree::BPlusTree(index_id_t index_id, BufferPoolManager *buffer_pool_manager
 }
 
 void BPlusTree::Destroy(page_id_t current_page_id) {
+  if (IsEmpty()) {
+    return;
+  }
   if (current_page_id == INVALID_PAGE_ID) {
     current_page_id = root_page_id_;
   }
