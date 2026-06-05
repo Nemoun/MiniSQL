@@ -37,7 +37,7 @@ select * from account where name = "name45678";
 select * from account where id < 12500200 and name < "name00100";
 delete from account where name = "name45678";
 insert into account values(12545678, "name45678", 114.514);
-drop index idx01 on account;
+drop index idx01;
 show indexes;
 select * from account where name = "name45678";
 update account set id = 12600000, balance = 114.514 where name = "name56789";

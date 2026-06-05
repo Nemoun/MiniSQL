@@ -228,9 +228,10 @@ dberr_t CatalogManager::CreateIndex(const std::string &table_name, const string 
   // 遍历表中已有数据，回填索引
   for (auto iter = table_info->GetTableHeap()->Begin(txn);
        iter != table_info->GetTableHeap()->End(); ++iter) {
+    Row src_row = *iter;
     Row key_row;
-    (*iter).GetKeyFromRow(table_info->GetSchema(), index_info->GetIndexKeySchema(), key_row);
-    index_info->GetIndex()->InsertEntry(key_row, (*iter).GetRowId(), txn);
+    src_row.GetKeyFromRow(table_info->GetSchema(), index_info->GetIndexKeySchema(), key_row);
+    index_info->GetIndex()->InsertEntry(key_row, src_row.GetRowId(), txn);
   }
  
   // 6. 更新内存映射和 CatalogMeta
