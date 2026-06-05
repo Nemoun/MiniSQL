@@ -150,6 +150,10 @@ dberr_t ExecuteEngine::Execute(pSyntaxNode ast) {
     default:
       break;
   }
+  if (context == nullptr) {
+    std::cout << "No database selected." << std::endl;
+    return DB_FAILED;
+  }
   // Plan the query.
   Planner planner(context.get());
   std::vector<Row> result_set{};

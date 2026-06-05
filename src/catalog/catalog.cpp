@@ -224,6 +224,14 @@ dberr_t CatalogManager::CreateIndex(const std::string &table_name, const string 
   // 5. 创建 IndexInfo
   index_info = IndexInfo::Create();
   index_info->Init(index_meta, table_info, buffer_pool_manager_);
+
+  // 遍历表中已有数据，回填索引
+  for (auto iter = table_info->GetTableHeap()->Begin(txn);
+       iter != table_info->GetTableHeap()->End(); ++iter) {
+    Row key_row;
+    (*iter).GetKeyFromRow(table_info->GetSchema(), index_info->GetIndexKeySchema(), key_row);
+    index_info->GetIndex()->InsertEntry(key_row, (*iter).GetRowId(), txn);
+  }
  
   // 6. 更新内存映射和 CatalogMeta
   idx_map[index_name] = index_id;
