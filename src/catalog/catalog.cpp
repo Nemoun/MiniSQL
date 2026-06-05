@@ -138,6 +138,7 @@ dberr_t CatalogManager::CreateTable(const string &table_name, TableSchema *schem
   auto *table_meta = TableMetadata::Create(table_id, table_name, first_page_id, owned_schema);
   table_meta->SerializeTo(meta_page->GetData());
   buffer_pool_manager_->UnpinPage(meta_page_id, true);
+  buffer_pool_manager_->FlushPage(meta_page_id);
  
   // 5. 创建 TableInfo，更新内存映射
   table_info = TableInfo::Create();
@@ -218,6 +219,7 @@ dberr_t CatalogManager::CreateIndex(const std::string &table_name, const string 
   auto *index_meta = IndexMetadata::Create(index_id, index_name, table_id, key_map);
   index_meta->SerializeTo(meta_page->GetData());
   buffer_pool_manager_->UnpinPage(meta_page_id, true);
+  buffer_pool_manager_->FlushPage(meta_page_id);
  
   // 5. 创建 IndexInfo
   index_info = IndexInfo::Create();

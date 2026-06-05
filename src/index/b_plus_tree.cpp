@@ -35,6 +35,9 @@ BPlusTree::BPlusTree(index_id_t index_id, BufferPoolManager *buffer_pool_manager
     }
 
     buffer_pool_manager_->UnpinPage(INDEX_ROOTS_PAGE_ID, true);
+    // 立即将 IndexRootsPage 写回磁盘，确保持久化
+    // （防止崩溃后丢失索引根页映射，导致下次启动时索引元数据损坏）
+    buffer_pool_manager_->FlushPage(INDEX_ROOTS_PAGE_ID);
 }
 
 void BPlusTree::Destroy(page_id_t current_page_id) {
@@ -534,6 +537,9 @@ bool BPlusTree::AdjustRoot(BPlusTreePage *old_root_node) {
  * @return : index iterator
  */
 IndexIterator BPlusTree::Begin() {
+  if (IsEmpty()) {
+    return End();
+  }
   Page *page = FindLeafPage(nullptr, root_page_id_, true);
   IndexIterator itr(page->GetPageId(), buffer_pool_manager_, 0);
   buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
@@ -546,6 +552,9 @@ IndexIterator BPlusTree::Begin() {
  * @return : index iterator
  */
 IndexIterator BPlusTree::Begin(const GenericKey *key) {
+  if (IsEmpty()) {
+    return End();
+  }
   Page *page = FindLeafPage(key, root_page_id_, false);
   if (page == nullptr) {
     return End();
@@ -623,6 +632,8 @@ void BPlusTree::UpdateRootPageId(int insert_record) {
     index_roots_page->Update(index_id_, root_page_id_);
   }
   buffer_pool_manager_->UnpinPage(INDEX_ROOTS_PAGE_ID, true);
+  // 立即将 IndexRootsPage 写回磁盘，确保持久化
+  buffer_pool_manager_->FlushPage(INDEX_ROOTS_PAGE_ID);
 }
 
 /**
