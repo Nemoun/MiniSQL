@@ -265,7 +265,9 @@ void BPlusTree::InsertIntoParent(BPlusTreePage *old_node, GenericKey *key, BPlus
   }
   if (new_size >= par_page->GetMaxSize()) {
     auto *recipient = Split(par_page, transaction);
+    #ifdef ENABLE_BPT_DEBUG
     LOG(INFO) << "Internal node (" << par_page->GetPageId() << ") is overflow, split to (" << recipient->GetPageId() << ")";
+    #endif
     // 对于内部节点来说，需要提升的key就是右边节点的第一个key（分裂之后成为了无效Key）
     GenericKey *to_promote = recipient->KeyAt(0);
     InsertIntoParent(par_page, to_promote, recipient, transaction);
